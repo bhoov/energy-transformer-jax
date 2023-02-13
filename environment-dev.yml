@@ -1,0 +1,19 @@
+name: energy-transformer
+channels:
+  - conda-forge
+  - anaconda
+  - fastai
+  - nvidia/label/cuda-11.7.0 # Newer cuda breaks on our system
+dependencies:
+  - pip>=20.0
+  - python>=3.9
+  - nb_conda # Assumes jupyter and jupyter_contrib_nbextensions are globally installed
+  - cudnn # Set a working version of cudnn and nvcc within the environment so JAX will play nicely
+  - cuda-nvcc
+  - cupy # This and below are needed for ffcv
+  - cuda-toolkit
+  - pkg-config
+  - compilers
+  - libjpeg-turbo
+  - opencv
+  - torchvision
