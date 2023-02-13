@@ -1,6 +1,6 @@
 # Energy Transformer
 
-Submission code for ICML 2023
+> A Transformer block that is an associative memory. A continuous dynamical system with a tractable energy that is guaranteed to converge to a fixed point. See [our paper](https://openreview.net/forum?id=4nrZXPFN1c4)
 
 # Installation
 
