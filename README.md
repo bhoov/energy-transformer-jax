@@ -52,6 +52,4 @@ pytest tests
 ```
 
 ## Original Implementation
-To our chagrin, the code used to run the experiments in the paper was implemented in Jupyter Notebooks and flax. We are in the process of improving cleanliness of this code. You can check out our progress in the `og_implementation/` folder.
-
-
+To our chagrin, the code used to run the experiments in the paper is incredibly messy and not good for understanding. We are in the process of improving cleanliness of this code. You can check out our progress in the `og_implementation/` folder.
