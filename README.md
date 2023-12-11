@@ -10,13 +10,60 @@ For legacy purposes we include the [`flax`](https://github.com/google/flax) code
 
 ## Introduction
 
-Energy Transformer (ET) is a continuous dynamical system with a tractable energy -- this means that the forward pass through the model can be done using autograd! 
+Energy Transformer (ET) is a continuous dynamical system with a tractable energy -- this means that the forward pass through the model can be done using autograd! This comes with additional benefits like being highly parameter efficient and interpretable (TODO add links). **Pseudocode** on layernorm representations `g` below:
+
+``` python
+import equinox as eqx
+import jax
+class EnergyTransformer(eqx.Module):
+    # Define all parameters
+    Wq: jax.Array  # n_heads, head_dim, token_dim
+    Wk: jax.Array  # n_heads, head_dim, token_dim
+    Xi: jax.Array  # n_memories, token_dim
+
+    def __init__(self, token_dim, n_heads, head_dim, n_memories):
+        ...
+
+    def attn_energy(self, g):
+        Q = jnp.einsum("qd,hzd->qhz", g, self.Wq)
+        K = jnp.einsum("kd,hzd->khz", g, self.Wk)
+
+        beta = 1 / jnp.sqrt(head_dim)
+        A = -1 / beta * jax.nn.logsumexp(beta * jnp.einsum("qhz,khz->hqk", Q, K), -1).sum()
+    
+    def hn_energy(self, g):
+        return -1 / 2 * jax.nn.relu(jnp.einsum("nd,md->nm", g, self.Xi)).sum()
+
+    def energy(self, g):
+        return self.attn_energy(g) + self.hn_energy(g)
+
+et = EnergyTransformer(...)
+
+key = jr.PRNGkey(0)
+x = jr.normal(key, (n_tokens, token_dim))
+
+for i in range(n_steps):
+    g = lnorm(x)
+    E, dEdg = jax.value_and_grad(et.energy)(g)
+    x = x - alpha * dEdg
+```
+
+There is also an energy on the LayerNorm that we cannot ignore, but the above is an excellent starting point for the architecture. See real code in `example.py.`
+
+
+
 
 ## Quick start
 We are still in the process of cleaning up the environment setup for this repository. For the main tutorial code, you can run:
 
+```
+conda env create -f environment.yml
+conda activate et-jax
+pip install -r requirements.txt
+```
 
-Demo code will work on a CPU.
+
+Demo code and environment works on a CPU.
 
 
 ### Examples
