@@ -59,34 +59,10 @@ conda activate et-jax
 pip install -r requirements.txt
 ```
 
-
-Demo code and environment works on a CPU.
-
-
-### Examples
-
-For a complete example of ET (with randomly initialized weights), see `example.py`. Observe energy behavior by running
+Demo code (randomized weights) and environment works on a CPU. Observe energy behavior:
 
 ```
 python example.py
-```
-
-## Minimal ET
-
-TODO ET is incredibly simple. We write the pseudocode for the model definition and inference below:
-
-``` python
-import equinox as eqx
-import jax
-import 
-
-class EnergyTransformer(eqx.Module):
-    Wq: jax.Array
-    Wk: jax.Array
-    M:  jax.Array
-    
-    def __init__(self, key, )
-
 ```
 
 ## Testing
