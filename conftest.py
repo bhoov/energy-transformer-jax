@@ -1,8 +1,5 @@
 import pytest
 from example import ETConfig, EnergyLayerNorm
-import jax
-import jax.numpy as jnp
-import jax.random as jr
 
 @pytest.fixture
 def _etconf():
