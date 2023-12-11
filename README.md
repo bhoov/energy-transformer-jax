@@ -1,6 +1,28 @@
 # Energy Transformer
 
-> A Transformer block that is an associative memory. A continuous dynamical system with a tractable energy that is guaranteed to converge to a fixed point. See [our paper](https://openreview.net/forum?id=4nrZXPFN1c4)
+> A novel architecture that is a Transformer, an Energy-Based Model, and an Associative Memory. See [our paper](https://arxiv.org/abs/2302.07253)
+
+## Introduction
+
+Energy Transformer (ET) is a continuous dynamical system with a tractable energy -- this means that the forward pass through the model can be done using autograd! 
+
+Minimal architectural example in JAX using [`equinox`](https://github.com/patrick-kidger/equinox) (great library, also looks a lot like pytorch).
+
+``` python
+import equinox as eqx
+import jax
+import 
+
+class EnergyTransformer(eqx.Module):
+    Wq: jax.Array
+    Wk: jax.Array
+    M:  jax.Array
+    
+    def __init__(self, key, )
+
+```
+
+`
 
 # Installation
 
