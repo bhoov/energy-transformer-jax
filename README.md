@@ -48,7 +48,7 @@ for i in range(n_steps):
     x = x - alpha * dEdg
 ```
 
-There is also an energy on the LayerNorm that we cannot ignore, but the above is an excellent starting point for the architecture. See working code in `tutorial.py.`
+There is also an energy on the LayerNorm that we cannot ignore, but the above is an excellent starting point for the architecture. See working code in `tutorial.py` with architecture code written in `architecture.py`.
 
 ## Quick start
 We are still in the process of cleaning up the environment setup for this repository. For the main tutorial code, you can run:
