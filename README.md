@@ -48,7 +48,7 @@ for i in range(n_steps):
     x = x - alpha * dEdg
 ```
 
-There is also an energy on the LayerNorm that we cannot ignore, but the above is an excellent starting point for the architecture. See working code in `example.py.`
+There is also an energy on the LayerNorm that we cannot ignore, but the above is an excellent starting point for the architecture. See working code in `tutorial.py.`
 
 ## Quick start
 We are still in the process of cleaning up the environment setup for this repository. For the main tutorial code, you can run:
@@ -62,7 +62,7 @@ pip install -r requirements.txt
 Demo code (randomized weights) and environment works on a CPU. Observe energy behavior:
 
 ```
-python example.py
+python tutorial.py
 ```
 
 ## Testing

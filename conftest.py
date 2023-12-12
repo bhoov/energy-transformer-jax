@@ -1,5 +1,5 @@
 import pytest
-from example import ETConfig, EnergyLayerNorm
+from tutorial import ETConfig, EnergyLayerNorm
 
 @pytest.fixture
 def _etconf():
