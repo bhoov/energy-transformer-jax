@@ -2,6 +2,8 @@
 
 > A novel architecture that is a Transformer, an Energy-Based Model, and an Associative Memory. See [our paper](https://arxiv.org/abs/2302.07253). [Barebones homepage with important links](https://bhoov.com/energy-transformer).
 
+![ET Details](/imgs/ET-details.jpeg)
+
 ## Structure
 
 This repository has been cleaned and rewritten for the purpose of clear communication rather than complete features (as was done in the experiments of the paper). The architecture is built using [`equinox`](https://github.com/patrick-kidger/equinox), an excellent and barebones JAX library that looks a lot like pytorch. All pseudocode examples in this README use equinox.
