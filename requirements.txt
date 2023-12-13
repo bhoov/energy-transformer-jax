@@ -5,3 +5,4 @@ einops
 matplotlib
 pytest
 tyro
+loguru

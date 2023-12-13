@@ -1,6 +1,6 @@
 # Energy Transformer
 
-> A novel architecture that is a Transformer, an Energy-Based Model, and an Associative Memory. See [our paper](https://arxiv.org/abs/2302.07253)
+> A novel architecture that is a Transformer, an Energy-Based Model, and an Associative Memory. See [our paper](https://arxiv.org/abs/2302.07253). [Barebones homepage with important links](https://bhoov.com/energy-transformer).
 
 ## Structure
 
@@ -48,7 +48,9 @@ for i in range(n_steps):
     x = x - alpha * dEdg
 ```
 
-There is also an energy on the LayerNorm that we cannot ignore, but the above is an excellent starting point for the architecture. See working code in `tutorial.py` with architecture code written in `architecture.py`.
+There is also an energy on the LayerNorm that we cannot ignore, but the above is an excellent starting point for the architecture. 
+
+See working code in `tutorial.py` (using random weights) with architecture code written in `architecture.py`. We load the model weights from the paper in `image_core.py`.
 
 ## Quick start
 We are still in the process of cleaning up the environment setup for this repository. For the main tutorial code, you can run:
@@ -65,11 +67,19 @@ Demo code (randomized weights) and environment works on a CPU. Observe energy be
 python tutorial.py
 ```
 
+Demo code (trained weights). See how ET can be applied to MASKed images.
+
+```
+python image_core.py
+```
+
 ## Testing
+
+Currently very limited testing.
 
 ```
 pytest tests
 ```
 
 ## Original Implementation
-To our chagrin, the code used to run the experiments in the paper is incredibly messy and not good for understanding. We are in the process of improving cleanliness of this code. You can check out our progress in the `og_implementation/` folder.
+To our chagrin, the code used to run the experiments in the paper is incredibly messy and not good for understanding. We are in the process of improving cleanliness of this code. You can check out the original code and dynamic inspections in the `og_implementation/` folder.

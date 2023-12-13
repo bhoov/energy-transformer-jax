@@ -298,20 +298,21 @@ if __name__ == "__main__":
   out = iet(x, mask)
 
   fig, axs = plt.subplots(1, 3, figsize=(12, 4))
+  def rm_ticks(ax):
+    ax.set_xticks([])
+    ax.set_yticks([])
+  [rm_ticks(ax) for ax in axs]
+    
   ax = axs[0]
   ax.imshow(array_to_img(masked_input) / 255.)
   ax.set_title("Masked Input")
-  ax.set_xticks([])
-  ax.set_yticks([])
 
   ax = axs[1]
   ax.imshow(array_to_img(out) / 255.)
   ax.set_title("Reconstruction")
-  ax.set_xticks([])
-  ax.set_yticks([])
   
   ax = axs[2]
   ax.imshow(og_input / 255.)
   ax.set_title("Original Image")
-  ax.set_xticks([])
-  ax.set_yticks([])
+
+  plt.show()
