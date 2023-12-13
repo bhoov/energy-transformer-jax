@@ -216,79 +216,104 @@ class ImageEnergyTransformer(eqx.Module):
     x = self.patcher.unpatchify(x)
     return x
 
-# %%
-conf = FullConfig(
-  image_shape=(3, 224, 224),
-  patch_size=16,
-  et_conf=ETConfig(D=768, Y=64, n_heads=4, scale_mems=4),
-)
-rng = jr.PRNGKey(0)
-iet_key, rng = jr.split(rng)
-iet = ImageEnergyTransformer(jr.PRNGKey(0), conf)
-
-img = jr.normal(jr.PRNGKey(0), (conf.image_shape))
-
-mask = np.zeros((iet.patcher.n_patches,), dtype=np.uint8)
-mask_idxs = np.random.choice(np.arange(iet.patcher.n_patches), size=iet.patcher.n_patches // 2, replace=False)
-mask[mask_idxs] = 1
-mask = jnp.array(mask, dtype=jnp.uint8)
-
-out = iet(img, mask)
-
-#%%
-import matplotlib.pyplot as plt
-plt.imshow(rearrange(out, "c h w -> h w c"))
-
-#%%
-mask = np.random.randint(0, 2, size=iet.patcher.n_patches)
 #%%
 def load_checkpoint(path: Union[str, Path]):
-  """Load checkpoints saved using Flax into our equinox module"""
+  """Load trained weights into our equinox module
+
+  A manual process because the checkpoint was saved using different code in Flax
+  """
   load_dict = dict(**np.load(path))
   H, Y, D = load_dict["Wk"].shape
   D, M = load_dict["Xi"].shape
   scale_mems = M / D
-  lnorm = EnergyLayerNorm(D, use_bias=True)
-  lnorm = eqx.tree_at(lambda lnorm: lnorm.gamma, lnorm, load_dict["LNORM_gamma"])
-  lnorm = eqx.tree_at(lambda lnorm: lnorm.delta, lnorm, load_dict["LNORM_bias"])
-
   et_conf = ETConfig(D, Y, n_heads=H, scale_mems=scale_mems)
   full_conf = FullConfig(
     image_shape=(3, 224, 224),
     patch_size=16,
     et_conf=et_conf,
   )
-  rng = jr.PRNGKey(0)
-  iet_key, rng = jr.split(rng)
-  iet = ImageEnergyTransformer(iet_key, full_conf)
 
-  attn = EnergyAttention(jr.PRNGKey(0), et_conf)
+  key = jr.PRNGKey(0)
+  et = EnergyTransformer(key, et_conf)
+
+  attn = EnergyAttention(key, et_conf)
   attn = eqx.tree_at(lambda attn: attn.Wk, attn, load_dict["Wk"])
   attn = eqx.tree_at(lambda attn: attn.Wq, attn, load_dict["Wq"])
+  et = eqx.tree_at(lambda et: et.attn, et, attn)
 
-  hn = HopfieldNetwork(jr.PRNGKey(0), et_conf)
+  hn = HopfieldNetwork(key, et_conf)
   hn = eqx.tree_at(lambda hn: hn.Xi, hn, load_dict["Xi"])
+  et = eqx.tree_at(lambda et: et.hn, et, hn)
 
-  EnergyTransformer = eqx.tree_at(lambda et: et.norm, EnergyTransformer, lnorm)
+  iet = ImageEnergyTransformer(key, full_conf)
+  iet = eqx.tree_at(lambda iet: iet.et, iet, et)
 
-  patch_size = 3 * 16 * 16
-  enc = Linear(jr.PRNGKey(0), dim_in=patch_size, dim_out=et_conf.D)
+  enc = Linear(key, dim_in=iet.patcher.patch_elements, dim_out=et_conf.D)
   enc = eqx.tree_at(lambda enc: enc.W, enc, load_dict["Wenc"])
   enc = eqx.tree_at(lambda enc: enc.bias, enc, load_dict["Benc"])
+  iet = eqx.tree_at(lambda iet: iet.encoder, iet, enc)
 
-  dec = Linear(jr.PRNGKey(0), dim_in=et_conf.D, dim_out=patch_size)
+  dec = Linear(key, dim_in=et_conf.D, dim_out=iet.patcher.patch_elements)
   dec = eqx.tree_at(lambda dec: dec.W, dec, load_dict["Wdec"])
   dec = eqx.tree_at(lambda dec: dec.bias, dec, load_dict["Bdec"])
+  iet = eqx.tree_at(lambda iet: iet.decoder, iet, dec)
 
-  return load_dict, enc, dec
+  lnorm = EnergyLayerNorm(D, use_bias=True)
+  lnorm = eqx.tree_at(lambda lnorm: lnorm.gamma, lnorm, load_dict["LNORM_gamma"])
+  lnorm = eqx.tree_at(lambda lnorm: lnorm.delta, lnorm, load_dict["LNORM_bias"])
+  iet = eqx.tree_at(lambda iet: iet.lnorm, iet, lnorm)
+
+  cls_token = load_dict["CLS_token"]
+  mask_token = load_dict["MASK_token"]
+  pos_embed = load_dict["POS_embed"]
+  iet = eqx.tree_at(lambda iet: iet.cls_token, iet, cls_token)
+  iet = eqx.tree_at(lambda iet: iet.mask_token, iet, mask_token)
+  iet = eqx.tree_at(lambda iet: iet.pos_embed, iet, pos_embed)
+  return iet
 
 
-load_dict, enc, dec = load_checkpoint("./checkpoints/plaindict_ckpt.npz")
-# load_dict = load_checkpoint('./checkpoints/plaindict_ckpt.npz')
-# print(load_dict['LNORM_gamma'].shape)
+iet = load_checkpoint("./checkpoints/plaindict_ckpt.npz")
+# load_dict, enc, dec = load_checkpoint("./checkpoints/plaindict_ckpt.npz")
+# print(load_dict.keys())
 
-# EnergyLayerNorm()
+#%% Load image from real dataset
+from PIL import Image
+imagenet_mean = np.array([0.485, 0.456, 0.406]) * 255
+imagenet_std = np.array([0.229, 0.224, 0.225]) * 255
+
+def img_to_array(im):
+  """Put into channel first format, normalize"""
+  x = np.array(im)
+  x = (x - imagenet_mean) / imagenet_std
+  x = rearrange(x, "h w c-> c h w")
+  return x
+
+def array_to_img(x):
+  """Put back into channel last format, denormalize"""
+  x = rearrange(x, "c h w -> h w c")
+  x = (x * imagenet_std) + imagenet_mean
+  return x
+  
+im = Image.open("imgs/00_parrot.png").convert("RGB")
+x = img_to_array(im)
+
+# Do stuff to x
+
+x = array_to_img(x)
+plt.imshow(x / 255.)
 
 # %%
-load_dict.keys()
-# %%
+iet = load_checkpoint("./checkpoints/plaindict_ckpt.npz")
+
+im = Image.open("imgs/00_parrot.png").convert("RGB")
+x = jnp.array(img_to_array(im))
+mask = np.zeros((iet.patcher.n_patches,), dtype=np.uint8)
+key = jr.PRNGKey(0)
+mask_idxs = jr.choice(key, np.arange(iet.patcher.n_patches), shape=(iet.conf.n_mask,), replace=False)
+# mask_idxs = np.random.choice(np.arange(iet.patcher.n_patches), size=iet.patcher.n_patches // 2, replace=False)
+mask[mask_idxs] = 1
+mask = jnp.array(mask, dtype=jnp.uint8)
+
+out = iet(x, mask)
+
+plt.imshow(array_to_img(out)/255.)

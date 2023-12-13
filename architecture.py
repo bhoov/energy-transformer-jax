@@ -83,11 +83,11 @@ class HopfieldNetwork(eqx.Module):
 
   def __init__(self, key:jr.PRNGKey, config:ETConfig):
     nmems = int(config.scale_mems * config.D)
-    self.Xi = jr.normal(key, (nmems, config.D))
+    self.Xi = jr.normal(key, (config.D, nmems))
 
   def energy(self, g:jnp.ndarray):
     """Return the Hopfield Network's energy"""
-    hid = jnp.einsum("nd,md->nm", g, self.Xi) # nTokens, nMems
+    hid = jnp.einsum("nd,dm->nm", g, self.Xi) # nTokens, nMems
     E = -0.5 * (jax.nn.relu(hid) ** 2).sum()
     return E
 
