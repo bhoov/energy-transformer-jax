@@ -67,7 +67,7 @@ Demo code (randomized weights) and environment works on a CPU. Observe energy be
 python tutorial.py
 ```
 
-Demo code (trained weights). See how ET can be applied to MASKed images.
+Demo code (trained weights, also works on CPU). See how ET can be applied to MASKed images.
 
 ```
 python image_core.py
