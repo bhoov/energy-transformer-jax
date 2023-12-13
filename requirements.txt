@@ -1,0 +1,7 @@
+jax
+flax
+equinox
+einops
+matplotlib
+pytest
+tyro

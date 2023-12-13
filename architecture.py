@@ -61,7 +61,7 @@ class EnergyAttention(eqx.Module):
   """
   Wq: jax.Array
   Wk: jax.Array
-  config: ETConfig
+  config: ETConfig = eqx.field(static=True)
 
   def __init__(self, key:jr.PRNGKey, config:ETConfig):
     kkey, qkey = jr.split(key)
@@ -95,7 +95,7 @@ class EnergyTransformer(eqx.Module):
   """A simple wrapper class that sums the energies of the Hopfield Network and the Attention"""
   attn: EnergyAttention
   hn: HopfieldNetwork
-  config: ETConfig
+  config: ETConfig = eqx.field(static=True)
   
   def __init__(self, key:jr.PRNGKey, config:ETConfig):
     attn_key, hn_key = jr.split(key)
