@@ -1,23 +1,18 @@
-#%%
-%reload_ext autoreload
-%autoreload 2
-
 # %%
-import jax
-import numpy as np
-import jax.numpy as jnp
-import jax.random as jr
-import jax.tree_util as jtu
-import equinox as eqx
 from typing import *
 from pathlib import Path
 import functools as ft
-from einops import rearrange
 from dataclasses import dataclass
-
 # import os
 # os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"]=".9"
 # os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"]="false"
+
+import numpy as np
+import jax
+import jax.numpy as jnp
+import jax.random as jr
+import equinox as eqx
+from einops import rearrange
 
 from architecture import (
   ETConfig,
@@ -26,26 +21,6 @@ from architecture import (
   HopfieldNetwork,
   EnergyTransformer,
 )
-
-
-def ifnone(a, b):
-  return b if a is None else a
-
-
-def is_squarable(n: int):
-  """Check if 2Darray `x` is square"""
-  m = int(np.sqrt(n))
-  return m == np.sqrt(n)
-
-
-def mul(a, b=1):
-  return a * b
-
-
-def normal(key, shape, mean=0, std=1):
-  x = jax.random.normal(key, shape)
-  return (x * std) + mean
-
 
 class Patcher:
   image_shape: Iterable[int]
@@ -74,7 +49,7 @@ class Patcher:
     self.kh, self.kw = kh, kw
     self.n_patches = kh * kw
     self.patch_shape = (image_shape[0], patch_size, patch_size)
-    self.patch_elements = ft.reduce(mul, self.patch_shape)
+    self.patch_elements = ft.reduce(lambda a, b=1: a * b, self.patch_shape)
 
   def patchify(self, img):
     return rearrange(
@@ -107,7 +82,6 @@ class Patcher:
 
     return cls(img_shape, patch_size, kh, kw)
 
-
 class Linear(eqx.Module):
   W: jax.Array
   bias: Optional[jax.Array]
@@ -124,13 +98,13 @@ class Linear(eqx.Module):
       return x @ self.W
     return x @ self.W + self.bias
 
-#%%
+
 @dataclass
-class FullConfig():
-  image_shape: Tuple[int, int, int] # Shape of the image to be processed
-  patch_size: int # Size of the patches to extract from the image
-  et_conf: ETConfig = eqx.field(static=True)# Configuration for the EnergyTransformer
-  n_mask: int = 100 # Number of patches to mask out
+class FullConfig:
+  image_shape: Tuple[int, int, int]  # Shape of the image to be processed
+  patch_size: int  # Size of the patches to extract from the image
+  et_conf: ETConfig = eqx.field(static=True)  # Configuration for the EnergyTransformer
+  n_mask: int = 100  # Number of patches to mask out
 
 
 class ImageEnergyTransformer(eqx.Module):
@@ -148,7 +122,7 @@ class ImageEnergyTransformer(eqx.Module):
     self.conf = conf
     self.patcher = Patcher.from_img_shape(conf.image_shape, conf.patch_size)
 
-    cls_key, mask_key, pos_key, enc_key, dec_key, et_key  = jr.split(key, 6)
+    cls_key, mask_key, pos_key, enc_key, dec_key, et_key = jr.split(key, 6)
 
     self.cls_token = 0.002 * jr.normal(cls_key, (conf.et_conf.D,))
     self.mask_token = 0.002 * jr.normal(mask_key, (conf.et_conf.D,))
@@ -210,13 +184,14 @@ class ImageEnergyTransformer(eqx.Module):
       E, dEdg = get_energy_info(g)
       x = x - alpha * dEdg
 
-    x = x[1:] # Discard CLS token, only needed to collect global image representation
+    x = x[1:]  # Discard CLS token, only needed to collect global image representation
     g = self.lnorm(x)
     x = self.decode(g)
     x = self.patcher.unpatchify(x)
     return x
 
-#%%
+
+# %%
 def load_checkpoint(path: Union[str, Path]):
   """Load trained weights into our equinox module
 
@@ -273,47 +248,70 @@ def load_checkpoint(path: Union[str, Path]):
 
 
 iet = load_checkpoint("./checkpoints/plaindict_ckpt.npz")
-# load_dict, enc, dec = load_checkpoint("./checkpoints/plaindict_ckpt.npz")
-# print(load_dict.keys())
 
-#%% Load image from real dataset
-from PIL import Image
-imagenet_mean = np.array([0.485, 0.456, 0.406]) * 255
-imagenet_std = np.array([0.229, 0.224, 0.225]) * 255
+# %% Load image from real dataset
+IMAGENET_MEAN = np.array([0.485, 0.456, 0.406]) * 255
+IMAGENET_STD = np.array([0.229, 0.224, 0.225]) * 255
+
 
 def img_to_array(im):
   """Put into channel first format, normalize"""
   x = np.array(im)
-  x = (x - imagenet_mean) / imagenet_std
+  x = (x - IMAGENET_MEAN) / IMAGENET_STD
   x = rearrange(x, "h w c-> c h w")
   return x
+
 
 def array_to_img(x):
   """Put back into channel last format, denormalize"""
   x = rearrange(x, "c h w -> h w c")
-  x = (x * imagenet_std) + imagenet_mean
+  x = (x * IMAGENET_STD) + IMAGENET_MEAN
   return x
+
+
+if __name__ == "__main__":
+  """Run the following test code to see if the model can be loaded and run on a single image"""
+  # %%
+  from PIL import Image
+  import matplotlib.pyplot as plt
+
+  iet = load_checkpoint("./checkpoints/plaindict_ckpt.npz")
+
+  im = Image.open("imgs/00_parrot.png").convert("RGB")
+  x = jnp.array(img_to_array(im))
+  mask = np.zeros((iet.patcher.n_patches,), dtype=np.uint8)
+  key = jr.PRNGKey(0)
+  mask_idxs = jr.choice(
+    key, np.arange(iet.patcher.n_patches), shape=(iet.conf.n_mask,), replace=False
+  )
+  # mask_idxs = np.random.choice(np.arange(iet.patcher.n_patches), size=iet.patcher.n_patches // 2, replace=False)
+  mask[mask_idxs] = 1
+  mask = jnp.array(mask, dtype=jnp.uint8)
+
+  # masked input
+  xin = iet.patcher.patchify(x)
+  xin = iet.encode(xin)
+  xin = iet.prep_tokens(xin, mask)  # N+1,D
+  masked_input = iet.patcher.unpatchify(iet.decode(iet.lnorm(xin[1:])))
+  og_input = np.array(im)
+
+  out = iet(x, mask)
+
+  fig, axs = plt.subplots(1, 3, figsize=(12, 4))
+  ax = axs[0]
+  ax.imshow(array_to_img(masked_input) / 255.)
+  ax.set_title("Masked Input")
+  ax.set_xticks([])
+  ax.set_yticks([])
+
+  ax = axs[1]
+  ax.imshow(array_to_img(out) / 255.)
+  ax.set_title("Reconstruction")
+  ax.set_xticks([])
+  ax.set_yticks([])
   
-im = Image.open("imgs/00_parrot.png").convert("RGB")
-x = img_to_array(im)
-
-# Do stuff to x
-
-x = array_to_img(x)
-plt.imshow(x / 255.)
-
-# %%
-iet = load_checkpoint("./checkpoints/plaindict_ckpt.npz")
-
-im = Image.open("imgs/00_parrot.png").convert("RGB")
-x = jnp.array(img_to_array(im))
-mask = np.zeros((iet.patcher.n_patches,), dtype=np.uint8)
-key = jr.PRNGKey(0)
-mask_idxs = jr.choice(key, np.arange(iet.patcher.n_patches), shape=(iet.conf.n_mask,), replace=False)
-# mask_idxs = np.random.choice(np.arange(iet.patcher.n_patches), size=iet.patcher.n_patches // 2, replace=False)
-mask[mask_idxs] = 1
-mask = jnp.array(mask, dtype=jnp.uint8)
-
-out = iet(x, mask)
-
-plt.imshow(array_to_img(out)/255.)
+  ax = axs[2]
+  ax.imshow(og_input / 255.)
+  ax.set_title("Original Image")
+  ax.set_xticks([])
+  ax.set_yticks([])
