@@ -12,7 +12,7 @@ For legacy purposes we include the [`flax`](https://github.com/google/flax) code
 
 ## Introduction
 
-Energy Transformer (ET) is a continuous dynamical system with a tractable energy -- this means that the forward pass through the model can be done using autograd! This comes with additional benefits like being highly parameter efficient and interpretable (TODO add links). **Pseudocode** on layernorm representations `g` below:
+Energy Transformer (ET) is a continuous dynamical system with a tractable energy -- this means that the forward pass through the model can be done using autograd! This comes with additional benefits like being highly parameter efficient and interpretable (see [the paper](https://arxiv.org/abs/2302.07253), Table 15 & Figs 4,5,6). **Pseudocode** on layernorm representations `g` below:
 
 ``` python
 import equinox as eqx
@@ -82,6 +82,3 @@ Currently very limited testing.
 ```
 pytest tests
 ```
-
-## Original Implementation
-To our chagrin, the code used to run the experiments in the paper is incredibly messy and not good for understanding. We are in the process of improving cleanliness of this code. You can check out the original code and dynamic inspections in the `og_implementation/` folder.
